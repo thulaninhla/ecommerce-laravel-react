@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: kasi-brands
+    name: laravel
     env: docker
     plan: free
     autoDeploy: true
