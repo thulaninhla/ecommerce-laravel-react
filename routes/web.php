@@ -1,22 +1,26 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\ShopController;
-use App\Http\Controllers\CartController;
-use App\http\Controllers\OrderController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 
+use App\Models\User;
+use App\Http\Controllers\{
+    ProductController,
+    ShopController,
+    CartController,
+    OrderController,
+    ProfileController,
+    PaystackController
+};
 
-// Route::get('/dashboard', function () {
-//     return view('dashboard');
-// })->middleware(['auth', 'verified'])->name('dashboard');
+// Home and Shop
+Route::get('/', [ShopController::class, 'index'])->name('shop.index');
+Route::get('/product/{id}', [ProductController::class, 'show'])->name('product.show');
 
+// Custom Auth (Register/Login)
 Route::post('/custom-register', function (Request $request) {
     $validator = Validator::make($request->all(), [
         'name' => 'required|string|max:255',
@@ -37,16 +41,15 @@ Route::post('/custom-register', function (Request $request) {
     ]);
 
     Auth::login($user);
-    return redirect('/')->with('success', 'Registration successful! You are now logged in.')    ;
+    return redirect('/')->with('success', 'Registration successful! You are now logged in.');
 })->name('custom.register');
-
 
 Route::post('/custom-login', function (Request $request) {
     $credentials = $request->only('email', 'password');
 
     if (Auth::attempt($credentials)) {
         $request->session()->regenerate();
-        return redirect('/')->with('success', 'You are now logged in!'); // redirect to home on success and returns message
+        return redirect('/')->with('success', 'You are now logged in!');
     }
 
     return redirect()->route('shop.index', ['show' => 'login'])
@@ -54,76 +57,55 @@ Route::post('/custom-login', function (Request $request) {
                      ->withInput();
 })->name('custom.login');
 
-Route::get('/', [ShopController::class, 'index'])->name('shop.index');
-Route::get('/product/{id}', [ProductController::class, 'show'])->name('product.show');
+Route::get('/login', fn () => redirect('/?show=login'))->name('login');
+Route::get('/register', fn () => redirect('/?show=register'))->name('register');
 
-Route::get('/login', function () {
-    return redirect('/?show=login');
-})->name('login');
-
-Route::get('/register', function () {
-    return redirect('/?show=register');
-})->name('register');
-
+// Profile (auth only)
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/admin/orders', [App\Http\Controllers\OrderController::class, 'index'])->name('admin.orders');
+// Admin Routes (auth only)
+Route::prefix('admin')->middleware('auth')->group(function () {
+    // Orders
+    Route::get('/orders', [OrderController::class, 'index'])->name('admin.orders');
 
-     // Admin product management
-     Route::get('/admin/products', [ProductController::class, 'index'])->name('admin.products');
-     Route::get('/admin/products/create', [ProductController::class, 'create'])->name('admin.products.create');
-     Route::post('/admin/products', [ProductController::class, 'store'])->name('admin.products.store');
-     Route::get('/admin/products/{product}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
-     Route::put('/admin/products/{product}', [ProductController::class, 'update'])->name('admin.products.update');
-     Route::delete('/admin/products/{product}', [ProductController::class, 'destroy'])->name('admin.products.destroy');
-
+    // Products
+    Route::get('/products', [ProductController::class, 'index'])->name('admin.products');
+    Route::get('/products/create', [ProductController::class, 'create'])->name('admin.products.create');
+    Route::post('/products', [ProductController::class, 'store'])->name('admin.products.store');
+    Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
+    Route::put('/products/{product}', [ProductController::class, 'update'])->name('admin.products.update');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('admin.products.destroy');
 });
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/admin/orders', [CartController::class, 'viewOrders'])->name('admin.orders');
-});
-
-// Show cart page
-
+// Cart
 Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-
-// Add to cart
-
 Route::post('/cart/add/{id}', [CartController::class, 'add'])->name('cart.add');
-
-Route::post('/cart/checkout/process', [CartController::class, 'processCheckout'])->name('cart.processCheckout');
 Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
-
-// Clear cart (after order placed)
-
 Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
 
-// Show the checkout form (GET)
-
+// Checkout
 Route::get('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
+Route::post('/cart/checkout/process', [CartController::class, 'processCheckout'])->name('cart.processCheckout');
 
-// Handle checkout form submission
+// Paystack Payment
+Route::post('/pay', [PaystackController::class, 'redirectToGateway'])->name('pay');
+Route::get('/payment/callback', [PaystackController::class, 'handleGatewayCallback'])->name('payment.callback');
 
-Route::post('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
+Route::get('/payment/success', function () {
+    return view('payment.success', ['details' => session('details')]);
+})->name('payment.success');
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/admin/orders', [OrderController::class, 'index'])->name('admin.orders');
-});
+Route::get('/payment/failed', function () {
+    return view('payment.failed', ['error' => session('error')]);
+})->name('payment.failed');
 
+
+// Product Review
 Route::post('/product/{id}/review', [ProductController::class, 'storeReview'])->name('reviews.store')->middleware('auth');
 
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-
-});
-
+// Laravel Auth scaffolding
 require __DIR__.'/auth.php';
-
-

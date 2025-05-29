@@ -93,7 +93,7 @@ public function processCheckout(Request $request)
     session()->forget('cart');
 
     return redirect()->route('cart.index')->with('success', 'Thanks for your order, ' . $request->name . '!');
-    }
+ }
 
     public function viewOrders()
     {

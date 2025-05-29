@@ -3,6 +3,7 @@
     $cartCount = array_sum(array_column($cart, 'quantity'));
 @endphp
 
+
 <nav x-data="{ open: false }" class="text-white bg-blue-600 shadow">
     <div class="container flex items-center justify-between px-6 py-4 mx-auto">
         <!-- Logo -->
@@ -24,11 +25,49 @@
         <!-- Links (desktop) -->
         <ul class="items-center hidden space-x-4 md:flex">
             <li><a href="{{ route('shop.index') }}" class="hover:underline">Home</a></li>
-            <li><a href="{{ route('cart.index') }}" class="hover:underline">Cart</a></li>
+          <li class="relative group">
+    <a href="{{ route('cart.index') }}" class="flex items-center gap-1 hover:underline">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m13-9l2 9m-5-5h-4"/>
+        </svg>
+        @if($cartCount > 0)
+            <span class="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-red-600 rounded-full -top-2 -right-2">
+                {{ $cartCount }}
+            </span>
+        @endif
+    </a>
+
+    <!-- Dropdown -->
+    <div class="absolute right-0 z-50 hidden w-64 p-4 mt-2 bg-white rounded shadow-lg group-hover:block">
+        @if($cartCount > 0)
+            <ul class="overflow-y-auto divide-y divide-gray-200 max-h-52">
+                @foreach($cart as $item)
+                    <li class="flex justify-between py-2 text-sm">
+                        <span>{{ $item['name'] }} x{{ $item['quantity'] }}</span>
+                        <span>${{ number_format($item['price'] * $item['quantity'], 2) }}</span>
+                    </li>
+                @endforeach
+            </ul>
+            <div class="mt-4 text-right">
+                <a href="{{ route('cart.checkout') }}"
+                   class="inline-block px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700">
+                    Checkout
+                </a>
+            </div>
+        @else
+            <p class="text-sm text-gray-500">Your cart is empty.</p>
+        @endif
+    </div>
+</li>
+
+
 
            @auth
                 @if(auth()->user()->is_admin)
                     <li><a href="{{ route('admin.orders') }}" class="hover:underline">Admin Orders</a></li>
+                    <li><a href="{{ route('admin.products.create') }}" class="nav-link">Create Product</a></li>
+
                 @endif
 
                 <li class="flex items-center gap-2">
@@ -63,7 +102,22 @@
     <div x-show="open" class="px-6 pb-4 md:hidden">
         <ul class="space-y-2">
             <li><a href="{{ route('shop.index') }}" class="block hover:underline">Home</a></li>
-            <li><a href="{{ route('cart.index') }}" class="block hover:underline">Cart</a></li>
+            <li class="relative">
+    <a href="{{ route('cart.index') }}" class="flex items-center gap-1 hover:underline">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m13-9l2 9m-5-5h-4"/>
+        </svg>
+        <span>Cart</span>
+        @if($cartCount > 0)
+            <span class="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-red-600 rounded-full -top-2 -right-2">
+                {{ $cartCount }}
+            </span>
+        @endif
+    </a>
+</li>
+
+
 
            @auth
                 @if(auth()->user()->is_admin)
