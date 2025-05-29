@@ -1,32 +1,42 @@
-# Build stage
-FROM composer:2.5 AS build
+# Use the official PHP image with necessary extensions
+FROM php:8.2-fpm
 
-WORKDIR /app
-COPY . /app
+# Set working directory
+WORKDIR /var/www
 
-RUN composer install --no-dev --optimize-autoloader \
- && php artisan config:cache \
- && php artisan route:cache \
- && php artisan view:cache
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Production stage
-FROM php:8.2-apache
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Enable mod_rewrite
-RUN a2enmod rewrite
+# Copy app files
+COPY . .
 
-# Set correct Apache DocumentRoot to /var/www/html/public
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Override Apache config to use our custom DocumentRoot
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf \
- && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+# Laravel permissions
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www/storage
 
-# Copy app
-COPY --from=build /app /var/www/html
+# Run artisan commands to fix 500 error
+RUN php artisan config:clear && \
+    php artisan cache:clear && \
+    php artisan route:clear && \
+    php artisan view:clear && \
+    php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache
 
-# Permissions
-WORKDIR /var/www/html
-RUN chown -R www-data:www-data /var/www/html
-
-EXPOSE 80
+# Expose port 8000 and start Laravel
+EXPOSE 8000
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
