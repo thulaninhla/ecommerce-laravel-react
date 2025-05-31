@@ -1,35 +1,37 @@
+# Use the official PHP image with required extensions
 FROM php:8.2-fpm
 
-WORKDIR /var/www
-
-# Install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip \
-    libpng-dev libonig-dev libxml2-dev \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+    git \
+    curl \
+    zip \
+    unzip \
+    libpq-dev \
+    libonig-dev \
+    libzip-dev \
+    libxml2-dev \
+    && docker-php-ext-install pdo pdo_pgsql zip
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
 
-# Copy all app files
+# Set working directory
+WORKDIR /var/www
+
+# Copy app files
 COPY . .
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set correct permissions
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage
+# Set correct permissions (you can adjust based on your needs)
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-# Expose port 8000
+# Expose port 8000 (optional if using php artisan serve)
 EXPOSE 8000
 
-# Run artisan commands on container start (safer than during build)
-CMD php artisan config:clear && \
-    php artisan cache:clear && \
-    php artisan route:clear && \
-    php artisan view:clear && \
-    php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache && \
+# Start Laravel app and run migrations
+CMD php artisan config:cache && \
+    php artisan migrate --force && \
     php artisan serve --host=0.0.0.0 --port=8000
