@@ -27,8 +27,13 @@ COPY . .
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Install Node dependencies and build Vite assets
+# Install Node and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
+
+# Install JS dependencies and build Vite assets
 RUN npm install && npm run build
+
 
 # Set proper permissions
 RUN chmod -R 775 storage bootstrap/cache
