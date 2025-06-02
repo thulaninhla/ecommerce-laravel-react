@@ -1,5 +1,8 @@
-# Use the official PHP image with required extensions
+# Use official PHP 8.2 FPM image
 FROM php:8.2-fpm
+
+# Set working directory
+WORKDIR /var/www
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -11,27 +14,33 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libzip-dev \
     libxml2-dev \
-    && docker-php-ext-install pdo pdo_pgsql zip
+    nodejs \
+    npm \
+    && docker-php-ext-install pdo pdo_pgsql mbstring zip bcmath
 
 # Install Composer
 COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
 
-# Set working directory
-WORKDIR /var/www
-
-# Copy app files
+# Copy project files
 COPY . .
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set correct permissions (you can adjust based on your needs)
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+# Install Node dependencies and build Vite assets
+RUN npm install && npm run build
 
-# Expose port 8000 (optional if using php artisan serve)
-EXPOSE 8000
+# Set proper permissions
+RUN chmod -R 775 storage bootstrap/cache
 
-# Start Laravel app and run migrations
+# Expose the port Laravel will run on
+EXPOSE 10000
+
+# Set environment variables
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+
+# Run Laravel migrations and start the app
 CMD php artisan config:cache && \
     php artisan migrate --force && \
-    php artisan serve --host=0.0.0.0 --port=8000
+    php artisan serve --host=0.0.0.0 --port=10000
