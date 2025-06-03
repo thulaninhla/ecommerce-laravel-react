@@ -8,9 +8,8 @@ export default defineConfig({
             refresh: true,
         }),
     ],
-    build: {
-        outDir: 'public/build',
-        manifest: true,
-        emptyOutDir: true,
-    }
+    server: {
+        https: false, // only affects local dev
+    },
+    base: '/build/', // make sure URLs are relative to /build
 });
