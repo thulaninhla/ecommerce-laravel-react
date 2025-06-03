@@ -1,11 +1,12 @@
-# Use official PHP image
+# Base PHP image with required extensions
 FROM php:8.2-fpm
 
-# Install system dependencies
+# Install system dependencies and Node.js
 RUN apt-get update && apt-get install -y \
     git curl zip unzip \
-    libpq-dev libonig-dev libzip-dev libxml2-dev \
-    nodejs npm \
+    libpq-dev libonig-dev libzip-dev libxml2-dev gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
     && docker-php-ext-install pdo pdo_pgsql zip
 
 # Install Composer
@@ -14,16 +15,16 @@ COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
-# Copy app files
+# Copy application code
 COPY . .
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Install Node modules & build Vite assets for production
+# Install Node dependencies and build assets
 RUN npm install && npm run build
 
-# Set proper permissions
+# Set file permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 # Expose port
