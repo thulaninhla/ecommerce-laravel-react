@@ -21,5 +21,6 @@
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
+     #RewriteRule ^ index.php [L]
+    RewriteRule ^(.*)$ public/$1 [L] # Ensures the files are pointed to the public folder correctly
 </IfModule>
