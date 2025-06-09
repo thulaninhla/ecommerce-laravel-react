@@ -24,7 +24,7 @@
 
 
     </head>
-    <body class="font-sans antialiased" x-data="{ showLogin: false, showRegister: false }''>
+    <body class="font-sans antialiased" x-data="{ showLogin: false, showRegister: false }">
         <div class="min-h-screen bg-gray-100">
             @include('layouts.navigation')
 
