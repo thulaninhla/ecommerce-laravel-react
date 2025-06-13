@@ -24,6 +24,6 @@ class AppServiceProvider extends ServiceProvider
         // This tells Laravel to generate all URLs using https:// in production.
         if (env('APP_ENV') !== 'local') {
         URL::forceScheme('https');
-    }
+        }
     }
 }
